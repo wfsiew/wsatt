@@ -3,6 +3,7 @@ from datetime import datetime
 import logging, json
 
 from app.models import DeviceStatus
+from app.entities import *
 from app.websocketpool import WebSocketPool
 
 def onMessageReceived(cli, server, msg):
