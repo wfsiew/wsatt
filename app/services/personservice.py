@@ -2,6 +2,7 @@ from pony.orm import Database, db_session
 from app.entities import Person
 from app.websocketpool import WebSocketPool
 
+import app.services.enrollinfoservice as en
 import time, json
 
 class PersonService:
@@ -17,14 +18,14 @@ class PersonService:
             o.name = record.name
             o.rollId = record.rollId
             
-    @classmethod
-    def insertSelective(cls, person: Person):
-        cls.insert(person)
+    # @classmethod
+    # def insertSelective(cls, person: Person):
+    #     cls.insert(person)
             
-    @classmethod
-    def insert(cls, person: Person):
-        with db_session:
-            Person(name=person.name, rollId=person.rollId)
+    # @classmethod
+    # def insert(cls, person: Person):
+    #     with db_session:
+    #         Person(name=person.name, rollId=person.rollId)
             
     @classmethod
     def deleteByPrimaryKey(cls, id: int):
@@ -34,7 +35,7 @@ class PersonService:
     @classmethod
     def selectByPrimaryKey(cls, id: int):
         with db_session:
-            return Person[id]
+            return Person.get(id=id)
         
     @classmethod
     def selectAll(cls) -> list[Person]:
@@ -69,4 +70,32 @@ class PersonService:
             WebSocketPool.addDeviceAndStatus(deviceSn, deviceStatus1)
             WebSocketPool.sendMessageToDeviceStatus(deviceSn, ms)
             
+    @classmethod
+    def setUserToDevice2(cls, deviceSn: str):
+        userInfos = en.EnrollInfoService.usersToSendDevice()
+        
+        for o in userInfos:
+            enrollId = o.enrollId
+            name = o.name
+            backupnum = o.backupnum
+            admin = o.admin
+            record = o.record
+            time.sleep(0.1)
+            x = {
+                'cmd': 'setuserinfo',
+                'enrollid': enrollId,
+                'name': name,
+                'backupnum': backupnum,
+                'admin': admin,
+                'record': record
+            }
+            ms = json.dumps(x)
             
+            if backupnum in [10, 11]:
+                pass
+            
+            deviceStatus1 = WebSocketPool.getDeviceStatus(deviceSn)
+            if deviceStatus1.status == 1:
+                deviceStatus1.status = 0
+                WebSocketPool.addDeviceAndStatus(deviceSn, deviceStatus1)
+                WebSocketPool.sendMessageToDeviceStatus(deviceSn, ms)

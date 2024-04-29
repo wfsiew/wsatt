@@ -6,18 +6,18 @@ db.bind(provider='sqlite', filename='../attdb.db', create_db=True)
 class AccessDay(db.Entity):
     _table_ = 'access_day'
     id = PrimaryKey(int, auto=True)
-    serial = Optional(str)
-    name = Optional(str)
-    startTime1 = Required(str)
-    endTime1 = Required(str)
-    startTime2 = Required(str)
-    endTime2 = Required(str)
-    startTime3 = Required(str)
-    endTime3 = Required(str)
-    startTime4 = Required(str)
-    endTime4 = Required(str)
-    startTime5 = Required(str)
-    endTime5 = Required(str)
+    serial = Optional(str, max_len=12)
+    name = Optional(str, max_len=20)
+    startTime1 = Required(str, max_len=20, column='start_time1')
+    endTime1 = Required(str, max_len=20, column='end_time1')
+    startTime2 = Required(str, max_len=20, column='start_time2')
+    endTime2 = Required(str, max_len=20, column='end_time2')
+    startTime3 = Required(str, max_len=20, column='start_time3')
+    endTime3 = Required(str, max_len=20, column='end_time3')
+    startTime4 = Required(str, max_len=20, column='start_time4')
+    endTime4 = Required(str, max_len=20, column='end_time4')
+    startTime5 = Required(str, max_len=20, column='start_time5')
+    endTime5 = Required(str, max_len=20, column='end_time5')
     
     def __str__(self):
         return f'''AccessDay [id={self.id}, serial={self.serial}, name={self.name} 
@@ -30,8 +30,8 @@ class AccessDay(db.Entity):
 class AccessWeek(db.Entity):
     _table_ = 'access_week'
     id = PrimaryKey(int, auto=True)
-    serial = Optional(str)
-    name = Optional(str)
+    serial = Optional(str, max_len=20)
+    name = Optional(str, max_len=20)
     sunday = Required(int)
     monday = Required(int)
     tuesday = Required(int)
@@ -49,7 +49,7 @@ class AccessWeek(db.Entity):
 class Device(db.Entity):
     _table_ = 'device'
     id = PrimaryKey(int, auto=True)
-    serialNum = Required(str)
+    serialNum = Required(str, max_len=50, column='serial_num')
     status = Required(int)
     
     def __str__(self):
@@ -58,10 +58,10 @@ class Device(db.Entity):
 class EnrollInfo(db.Entity):
     _table_ = 'enrollinfo'
     id = PrimaryKey(int, auto=True)
-    enrollId = Required(int)
+    enrollId = Required(int, column='enroll_id')
     backupnum = Optional(int)
-    imagePath = Optional(str)
-    signatures = Required(str)
+    imagePath = Optional(str, max_len=255, column='imagepath')
+    signatures = Optional(str)
     
     def __str__(self):
         return f'EnrollInfo [id={self.id}, enrollId={self.enrollId}, backupnum={self.backupnum}, imagePath={self.imagePath}, signatures={self.signatures}]'
@@ -69,8 +69,8 @@ class EnrollInfo(db.Entity):
 class Person(db.Entity):
     _table_ = 'person'
     id = PrimaryKey(int, auto=True)
-    name = Optional(str)
-    rollId = Optional(int)
+    name = Optional(str, max_len=50)
+    rollId = Optional(int, column='roll_id')
     
     def __str__(self):
         return f'Person [id={self.id}, name={self.name}, rollId={self.rollId}]'
@@ -78,13 +78,13 @@ class Person(db.Entity):
 class Records(db.Entity):
     _table_ = 'records'
     id = PrimaryKey(int, auto=True)
-    enrollId = Required(int)
-    recordsTime = Required(str)
+    enrollId = Required(int, column='enroll_id')
+    recordsTime = Required(str, column='records_time')
     mode = Required(int)
-    intout = Required(int)
+    intout = Required(int, column='intOut')
     event = Required(int)
-    deviceSerialNum = Optional(str)
+    deviceSerialNum = Optional(str, max_len=50, column='device_serial_num')
     temperature = Optional(float)
-    image = Optional(str)
+    image = Optional(str, max_len=255)
     
 db.generate_mapping(create_tables=True)

@@ -1,7 +1,8 @@
 from pony.orm import Database, db_session
 from app.entities import EnrollInfo
 from app.models import UserInfo
-from services.personservice import PersonService
+
+import app.services.personservice as pe
 
 class EnrollInfoService:
     
@@ -10,15 +11,15 @@ class EnrollInfoService:
         with db_session:
             EnrollInfo[id].delete()
             
-    @classmethod
-    def insertSelective(cls, record: EnrollInfo):
-        with db_session:
-            EnrollInfo(enrollId=record.enrollId, backupnum=record.backupnum, imagePath=record.imagePath, signatures=record.signatures)
+    # @classmethod
+    # def insertSelective(cls, record: EnrollInfo):
+    #     with db_session:
+    #         EnrollInfo(enrollId=record.enrollId, backupnum=record.backupnum, imagePath=record.imagePath, signatures=record.signatures)
             
     @classmethod
     def selectByPrimaryKey(cls, id: int):
         with db_session:
-            return EnrollInfo[id]
+            return EnrollInfo.get(id=id)
         
     @classmethod
     def updateByPrimaryKeySelective(cls, record: EnrollInfo):
@@ -33,19 +34,20 @@ class EnrollInfoService:
     def updateByPrimaryKeyWithBLOBs(cls, record: EnrollInfo):
         cls.updateByPrimaryKeySelective(record)
             
-    @classmethod
-    def insert(cls, enrollid: int, backupnum: int, imagePath: str, signature: str):
-        with db_session:
-            EnrollInfo(enrollId=enrollid, backupnum=backupnum, imagePath=imagePath, signatures=signature)
+    # @classmethod
+    # def insert(cls, enrollid: int, backupnum: int, imagePath: str, signature: str):
+    #     with db_session:
+    #         EnrollInfo(enrollId=enrollid, backupnum=backupnum, imagePath=imagePath, signatures=signature)
             
     @classmethod
-    def selectByBackupnum(cls, enrollId: int, backupnum: int) -> list[EnrollInfo]:
+    def selectByBackupnum(cls, enrollId: int, backupnum: int) -> EnrollInfo:
         with db_session:
-            return EnrollInfo.select(lambda o: o.enrollId == enrollId and o.backupnum == backupnum).first()
+            o = EnrollInfo.get(enrollId=enrollId, backupnum=backupnum)
+            return o
         
     @classmethod
     def usersToSendDevice(cls):
-        persons = PersonService.selectAll()
+        persons = pe.PersonService.selectAll()
         enrollInfos = cls.selectAll()
         userInfos: list[UserInfo] = []
         
