@@ -3,23 +3,23 @@ from app.entities import Device
 
 class DeviceService:
     
-    @db_session
     @classmethod
-    def findAllDevice(cls):
-        return Device.select(o for o in Device)[:]
+    def findAllDevice(cls) -> list[Device]:
+        with db_session:
+            return Device.select(o for o in Device)[:]
     
     @classmethod
     def insert(cls, serialNum: str, status: int):
         with db_session:
             Device(serialNum=serialNum, status=status)
-        
-    @db_session
+
     @classmethod
     def selectByPrimaryKey(cls, id: int):
-        return Device[id]
+        with db_session:
+            return Device[id]
     
     @classmethod
-    def selectDeviceBySerialNum(cls, serialNum: str):
+    def selectDeviceBySerialNum(cls, serialNum: str) -> Device:
         with db_session:
             return Device.get(serialNum=serialNum)
     

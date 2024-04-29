@@ -3,9 +3,12 @@ from websocket_server import WebsocketServer
 from datetime import datetime
 import logging, json
 
-from app.models import DeviceStatus
+from app.models import DeviceStatus, UserTemp
 from app.entities import *
 from app.services.deviceservice import DeviceService
+from app.services.recordsservice import RecordsService
+from app.services.personservice import PersonService
+from app.services.enrollinfoservice import EnrollInfoService
 from app.websocketpool import WebSocketPool
 from app import utils
 
@@ -29,13 +32,13 @@ def getDeviceInfo(cli, server, m):
             'cloudtime': now
         }
         ms = json.dumps(x)
+        WebSocketPool.sendMessageToDevice(cli, server, ms)
         deviceStatus = DeviceStatus()
         deviceStatus.deviceSn = sn
         deviceStatus.status = 1
         deviceStatus.webSocket = server
         deviceStatus.client = cli
         WebSocketPool.addDeviceAndStatus(sn, deviceStatus)
-        WebSocketPool.sendMessageToDeviceStatus(sn, ms)
             
     else:
         x = {
@@ -53,11 +56,6 @@ def getAttandence(cli, server, m):
     records = m.get('record', [])
     recordAll: List[Records] = []
     deviceStatus = DeviceStatus()
-    deviceStatus.deviceSn = sn
-    deviceStatus.status = 1
-    deviceStatus.webSocket = server
-    deviceStatus.client = cli
-    WebSocketPool.addDeviceAndStatus(sn, deviceStatus)
     
     if count > 0:
         for o in records:
@@ -97,7 +95,7 @@ def getAttandence(cli, server, m):
                 'cloudtime': now
             }
             ms = json.dumps(x)
-            WebSocketPool.sendMessageToDeviceStatus(sn, ms)
+            WebSocketPool.sendMessageToDevice(cli, server, ms)
             
         elif logindex < 0:
             x = {
@@ -106,7 +104,13 @@ def getAttandence(cli, server, m):
                 'cloudtime': now
             }
             ms = json.dumps(x)
-            WebSocketPool.sendMessageToDeviceStatus(sn, ms)
+            WebSocketPool.sendMessageToDevice(cli, server, ms)
+            
+        deviceStatus.deviceSn = sn
+        deviceStatus.status = 1
+        deviceStatus.webSocket = server
+        deviceStatus.client = cli
+        WebSocketPool.addDeviceAndStatus(sn, deviceStatus)
         
     elif count == 0:
         x = {
@@ -115,8 +119,15 @@ def getAttandence(cli, server, m):
             'reason': 1
         }
         ms = json.dumps(x)
+        WebSocketPool.sendMessageToDevice(cli, server, ms)
+        deviceStatus.deviceSn = sn
+        deviceStatus.status = 1
+        deviceStatus.webSocket = server
+        deviceStatus.client = cli
         WebSocketPool.addDeviceAndStatus(sn, deviceStatus)
-        WebSocketPool.sendMessageToDeviceStatus(sn, ms)
+        
+    for recordsTemp in recordAll:
+        RecordsService.insert(recordsTemp)
         
 def getEnrollInfo(cli, server, m):
     sn = m.get('sn')
@@ -135,8 +146,8 @@ def getEnrollInfo(cli, server, m):
             'reason': 1
         }
         ms = json.dumps(x)
+        WebSocketPool.sendMessageToDevice(cli, server, ms)
         WebSocketPool.addDeviceAndStatus(sn, deviceStatus)
-        WebSocketPool.sendMessageToDeviceStatus(sn, ms)
         
     else:
         backupnum = int(m.get('backupnum', 0))
@@ -150,8 +161,43 @@ def getEnrollInfo(cli, server, m):
             'cloudtime': now
         }
         ms = json.dumps(x)
+        WebSocketPool.sendMessageToDevice(cli, server, ms)
         WebSocketPool.addDeviceAndStatus(sn, deviceStatus)
-        WebSocketPool.sendMessageToDeviceStatus(sn, ms)
+        
+def getUserList(cli, server, m):
+    userTemps: list[UserTemp] = []
+    result = bool(m.get('result', False))
+    records = m.get('record', [])
+    count = 0
+    
+    if result == True:
+        count = int(m.get('count', 0))
+        if count > 0:
+            for o in records:
+                enrollid = int(o.get('enrollid', 0))
+                admin = int(o.get('admin', 0))
+                backupnum = int(o.get('backupnum', 0))
+                userTemp = UserTemp()
+                userTemp.enrollId = enrollid
+                userTemp.backupnum = backupnum
+                userTemp.admin = admin
+                userTemps.append(userTemp)
+                
+            x = {
+                'cmd': 'getuserlist',
+                'stn': False
+            }
+            ms = json.dumps(x)
+            WebSocketPool.sendMessageToDevice(cli, server, ms)
+            
+    for uTemp in userTemps:
+        if PersonService.selectByPrimaryKey(uTemp.enrollId) is None:
+            personTemp = Person(id=uTemp.enrollId, name='', rollId=uTemp.admin)
+            PersonService.insert(personTemp)
+            
+        if len(EnrollInfoService.selectByBackupnum(uTemp.enrollId, uTemp.backupnum)) < 1:
+            enrollInfo = EnrollInfo(enrollId=uTemp.enrollId, backupnum=uTemp.backupnum)
+            EnrollInfoService.insertSelective(enrollInfo)
 
 def onMessageReceived(cli, server, msg):
     print(msg)
@@ -187,7 +233,7 @@ def onMessageReceived(cli, server, msg):
             
     elif m.get('cmd') == 'senduser':
         try:
-            pass
+            getEnrollInfo(cli, server, m)
         
         except Exception as e:
             x = {
@@ -198,40 +244,6 @@ def onMessageReceived(cli, server, msg):
             ms = json.dumps(x)
             WebSocketPool.sendMessageToDevice(cli, server, ms)
             logger.error(str(e))
-            
-        sn = m.get('sn')
-        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        signatures1 = m.get('record')
-        deviceStatus = DeviceStatus()
-        deviceStatus.deviceSn = sn
-        deviceStatus.status = 1
-        deviceStatus.webSocket = server
-        deviceStatus.client = cli
-        
-        if signatures1 is None:
-            x = {
-                'ret': 'senduser',
-                'result': False,
-                'reason': 1
-            }
-            ms = json.dumps(x)
-            WebSocketPool.sendMessageToDeviceStatus(sn, ms)
-            WebSocketPool.addDeviceAndStatus(sn, deviceStatus)
-            
-        else:
-            backupnum = int(m.get('backupnum', 0))
-            enrollId = int(m.get('enrollId', 0))
-            name = m.get('name')
-            admin = int(m.get('admin', 0))
-            signatures = m.get('record')
-            x = {
-                'ret': 'senduser',
-                'result': True,
-                'cloudtime': now
-            }
-            ms = json.dumps(x)
-            WebSocketPool.sendMessageToDeviceStatus(sn, ms)
-            WebSocketPool.addDeviceAndStatus(sn, deviceStatus)
             
     elif m.get('cmd') == 'getalllog':
         sn = m.get('deviceSn')
@@ -258,31 +270,13 @@ def onMessageReceived(cli, server, msg):
         WebSocketPool.sendMessageToDeviceStatus(sn, ms) 
         
     elif m.get('ret') == 'getuserlist':
-        now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        result = bool(m.get('result', False))
+        getUserList(cli, server, m)
         
-        if result == True:
-            backupnum = int(m.get('backupnum', 0))
-            signatures1 = m.get('record')
-            enrollid = int(m.get('enrollid', 0))
-            name = m.get('name')
-            admin = int(m.get('admin', 0))
-            signatures = m.get('record')
-            
-    elif m.get('ret') == 'getuserlist':
-        result = bool(m.get('result', False))
-        records = m.get('record', [])
-        count = 0
-        
-        if result == True:
-            count = int(m.get('count', 0))
-            if count > 0:
-                x = {
-                    'cmd': 'getuserlist',
-                    'stn': False
-                }
-                ms = json.dumps(x)
-                WebSocketPool.sendMessageToDevice(cli, server, ms)
+    elif m.get('ret') == 'getuserinfo':
+        pass
+    
+    elif m.get('ret') == 'setuserinfo':
+        pass
         
     elif m.get('ret') == 'getalllog':
         result = bool(m.get('result', False))
