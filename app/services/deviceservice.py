@@ -8,24 +8,24 @@ class DeviceService:
     def findAllDevice(cls):
         return Device.select(o for o in Device)[:]
     
-    @db_session
     @classmethod
     def insert(cls, serialNum: str, status: int):
-        o = Device(serialNum=serialNum, status=status)
+        with db_session:
+            Device(serialNum=serialNum, status=status)
         
     @db_session
     @classmethod
     def selectByPrimaryKey(cls, id: int):
         return Device[id]
     
-    @db_session
     @classmethod
     def selectDeviceBySerialNum(cls, serialNum: str):
-        return Device.get(serialNum=serialNum)
+        with db_session:
+            return Device.get(serialNum=serialNum)
     
-    @db_session
     @classmethod
     def updateStatusByPrimaryKey(cls, id: int, status: int):
-        o = Device[id]
-        o.status = status
+        with db_session:
+            o = Device[id]
+            o.status = status
         

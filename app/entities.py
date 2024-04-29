@@ -6,8 +6,8 @@ db.bind(provider='sqlite', filename='../attdb.db', create_db=True)
 class AccessDay(db.Entity):
     _table_ = 'access_day'
     id = PrimaryKey(int, auto=True)
-    serial = Required(str)
-    name = Required(str)
+    serial = Optional(str)
+    name = Optional(str)
     startTime1 = Required(str)
     endTime1 = Required(str)
     startTime2 = Required(str)
@@ -30,8 +30,8 @@ class AccessDay(db.Entity):
 class AccessWeek(db.Entity):
     _table_ = 'access_week'
     id = PrimaryKey(int, auto=True)
-    serial = Required(str)
-    name = Required(str)
+    serial = Optional(str)
+    name = Optional(str)
     sunday = Required(int)
     monday = Required(int)
     tuesday = Required(int)
@@ -59,8 +59,8 @@ class EnrollInfo(db.Entity):
     _table_ = 'enrollinfo'
     id = PrimaryKey(int, auto=True)
     enrollId = Required(int)
-    backupnum = Required(int)
-    imagePath = Required(str)
+    backupnum = Optional(int)
+    imagePath = Optional(str)
     signatures = Required(str)
     
     def __str__(self):
@@ -69,8 +69,8 @@ class EnrollInfo(db.Entity):
 class Person(db.Entity):
     _table_ = 'person'
     id = PrimaryKey(int, auto=True)
-    name = Required(str)
-    rollId = Required(int)
+    name = Optional(str)
+    rollId = Optional(int)
     
     def __str__(self):
         return f'Person [id={self.id}, name={self.name}, rollId={self.rollId}]'
@@ -83,8 +83,8 @@ class Records(db.Entity):
     mode = Required(int)
     intout = Required(int)
     event = Required(int)
-    deviceSerialNum = Required(str)
-    temperature = Required(float)
-    image = Required(str)
+    deviceSerialNum = Optional(str)
+    temperature = Optional(float)
+    image = Optional(str)
     
 db.generate_mapping(create_tables=True)

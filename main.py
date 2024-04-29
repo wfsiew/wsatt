@@ -7,14 +7,14 @@ from app.models import DeviceStatus
 from app.entities import *
 from app.services.deviceservice import DeviceService
 from app.websocketpool import WebSocketPool
-from app.utils import getLogger
+from app import utils
 
-logger = getLogger('main')
+logger = utils.getLogger('main')
 
 def getDeviceInfo(cli, server, m):
     sn = m.get('sn')
     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    deviceStatus = DeviceStatus()
+
     if sn is not None:
         d1 = DeviceService.selectDeviceBySerialNum(sn)
         if d1 is None:
@@ -29,13 +29,13 @@ def getDeviceInfo(cli, server, m):
             'cloudtime': now
         }
         ms = json.dumps(x)
-        WebSocketPool.sendMessageToDeviceStatus(sn, ms)
-            
+        deviceStatus = DeviceStatus()
         deviceStatus.deviceSn = sn
         deviceStatus.status = 1
         deviceStatus.webSocket = server
         deviceStatus.client = cli
         WebSocketPool.addDeviceAndStatus(sn, deviceStatus)
+        WebSocketPool.sendMessageToDeviceStatus(sn, ms)
             
     else:
         x = {
@@ -57,6 +57,7 @@ def getAttandence(cli, server, m):
     deviceStatus.status = 1
     deviceStatus.webSocket = server
     deviceStatus.client = cli
+    WebSocketPool.addDeviceAndStatus(sn, deviceStatus)
     
     if count > 0:
         for o in records:
@@ -106,8 +107,6 @@ def getAttandence(cli, server, m):
             }
             ms = json.dumps(x)
             WebSocketPool.sendMessageToDeviceStatus(sn, ms)
-            
-        WebSocketPool.addDeviceAndStatus(sn, deviceStatus)
         
     elif count == 0:
         x = {
@@ -116,8 +115,8 @@ def getAttandence(cli, server, m):
             'reason': 1
         }
         ms = json.dumps(x)
-        WebSocketPool.sendMessageToDeviceStatus(sn, ms)
         WebSocketPool.addDeviceAndStatus(sn, deviceStatus)
+        WebSocketPool.sendMessageToDeviceStatus(sn, ms)
         
 def getEnrollInfo(cli, server, m):
     sn = m.get('sn')
@@ -136,8 +135,8 @@ def getEnrollInfo(cli, server, m):
             'reason': 1
         }
         ms = json.dumps(x)
-        WebSocketPool.sendMessageToDeviceStatus(sn, ms)
         WebSocketPool.addDeviceAndStatus(sn, deviceStatus)
+        WebSocketPool.sendMessageToDeviceStatus(sn, ms)
         
     else:
         backupnum = int(m.get('backupnum', 0))
@@ -151,8 +150,8 @@ def getEnrollInfo(cli, server, m):
             'cloudtime': now
         }
         ms = json.dumps(x)
-        WebSocketPool.sendMessageToDeviceStatus(sn, ms)
         WebSocketPool.addDeviceAndStatus(sn, deviceStatus)
+        WebSocketPool.sendMessageToDeviceStatus(sn, ms)
 
 def onMessageReceived(cli, server, msg):
     print(msg)
