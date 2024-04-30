@@ -1,6 +1,4 @@
-from typing import List
 from websocket_server import WebsocketServer
-from pony.orm import db_session
 from datetime import datetime
 import logging, json, traceback
 
@@ -56,30 +54,36 @@ def getAttandence(cli, server, m):
     count = int(m.get('count', 0))
     logindex = int(m.get('logindex', -1))
     records = m.get('record', [])
-    # recordAll: List[Records] = []
+    recordAll: list[RecordsModel] = []
     deviceStatus = DeviceStatus()
     
     if count > 0:
-        with db_session:
-            for o in records:
-                enrollid = int(o.get('enrollid', 0))
-                time = o.get('time')
-                mode = int(o.get('mode', 0))
-                inout = int(o.get('inout', 0))
-                event = int(o.get('event', 0))
-                temperature = 0
+        for o in records:
+            enrollid = int(o.get('enrollid', 0))
+            time = o.get('time')
+            mode = int(o.get('mode', 0))
+            inout = int(o.get('inout', 0))
+            event = int(o.get('event', 0))
+            temperature = 0
+            
+            if o.get('temp') is not None:
+                temperature = float(o.get('temp', 0))
+                temperature = temperature / 100.0
+                temperature = round(temperature * 10) / 10.0
                 
-                if o.get('temp') is not None:
-                    temperature = float(o.get('temp', 0))
-                    temperature = temperature / 100.0
-                    temperature = round(temperature * 10) / 10.0
-                    
-                Records(deviceSerialNum=sn, enrollId=enrollid, event=event, intout=inout, mode=mode, recordsTime=time, temperature=temperature, image=o.get('image'))
+            record = RecordsModel()
+            record.deviceSerialNum = sn
+            record.enrollId = enrollid
+            record.event = event
+            record.intout = inout
+            record.mode = mode
+            record.recordsTime = time
+            record.temperature = temperature
+            
+            if o.get('image') is not None:
+                record.image = o.get('image')
                 
-                # if o.get('image') is not None:
-                #     record.image = o.get('image')
-                    
-                # recordAll.append(record)
+            recordAll.append(record)
             
         if logindex >= 0:
             now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -122,8 +126,7 @@ def getAttandence(cli, server, m):
         deviceStatus.client = cli
         WebSocketPool.addDeviceAndStatus(sn, deviceStatus)
         
-    # for recordsTemp in recordAll:
-    #     RecordsService.insert(recordsTemp)
+    RecordsService.insert(recordAll)
         
 def getEnrollInfo(cli, server, m):
     sn = m.get('sn')
@@ -149,15 +152,22 @@ def getEnrollInfo(cli, server, m):
         rollId = int(m.get('admin', 0))
         signatures = m.get('record')
         
-        with db_session:
-            if pe.PersonService.selectByPrimaryKey(enrollId) is None:
-                Person(id=enrollId, name=name, rollId=rollId)
-            
-            if backupnum == 50:
-                pass
-            
-            if en.EnrollInfoService.selectByBackupnum(enrollId, backupnum) is None:
-                EnrollInfo(enrollId=enrollId, backupnum=backupnum, signatures=signatures)
+        if pe.PersonService.selectByPrimaryKey(enrollId) is None:
+            person = PersonModel()
+            person.id = enrollId
+            person.name = name
+            person.rollId = rollId
+            pe.PersonService.insert([person])
+        
+        if backupnum == 50:
+            pass
+        
+        if en.EnrollInfoService.selectByBackupnum(enrollId, backupnum) is None:
+            enrollInfo = EnrollInfoModel()
+            enrollInfo.enrollId = enrollId
+            enrollInfo.backupnum = backupnum
+            enrollInfo.signatures = signatures
+            en.EnrollInfoService.insertSelective([enrollInfo])
         
         x = {
             'ret': 'senduser',
@@ -179,6 +189,8 @@ def getUserList(cli, server, m):
     sn = m.get('sn')
     deviceStatus = DeviceStatus()
     count = 0
+    lp: list[PersonModel] = []
+    le: list[EnrollInfoModel] = []
     
     if result == True:
         count = int(m.get('count', 0))
@@ -205,13 +217,21 @@ def getUserList(cli, server, m):
             deviceStatus.client = cli
             WebSocketPool.addDeviceAndStatus(sn, deviceStatus)
             
-    with db_session:
-        for uTemp in userTemps:
-            if pe.PersonService.selectByPrimaryKey(uTemp.enrollId) is None:
-                Person(id=uTemp.enrollId, name='', rollId=uTemp.admin)
-                
-            if en.EnrollInfoService.selectByBackupnum(uTemp.enrollId, uTemp.backupnum) is None:
-                EnrollInfo(enrollId=uTemp.enrollId, backupnum=uTemp.backupnum)
+    for uTemp in userTemps:
+        if pe.PersonService.selectByPrimaryKey(uTemp.enrollId) is None:
+            person = PersonModel()
+            person.id = uTemp.enrollId
+            person.name = ''
+            person.rollId = uTemp.admin
+
+        if en.EnrollInfoService.selectByBackupnum(uTemp.enrollId, uTemp.backupnum) is None:
+            enrollInfo = EnrollInfoModel()
+            enrollInfo.enrollId = uTemp.enrollId
+            enrollInfo.backupnum = uTemp.backupnum
+            le.append(enrollInfo)
+            
+    pe.PersonService.insert(lp)
+    en.EnrollInfoService.insertSelective(le)
             
 def getUserInfo(cli, server, m):
     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -227,29 +247,37 @@ def getUserInfo(cli, server, m):
         admin = int(m.get('admin', 0))
         signatures = m.get('record')
         
-        with db_session:
-            person = pe.PersonService.selectByPrimaryKey(enrollid)
-            enrollInfo = en.EnrollInfoService.selectByBackupnum(enrollid, backupnum)
+        person = pe.PersonService.selectByPrimaryKey(enrollid)
+        enrollInfo = en.EnrollInfoService.selectByBackupnum(enrollid, backupnum)
+        
+        if backupnum == 50:
+            pass
+        
+        if person is None:
+            person = PersonModel()
+            person.id = enrollid
+            person.name = name
+            person.rollId = admin
+            pe.PersonService.insert([person])
             
-            if backupnum == 50:
-                pass
+        elif person is not None:
+            pe.PersonService.updateByPrimaryKey(person)
             
-            if person is None:
-                Person(id=enrollid, name=name, rollId=admin)
-                
-            elif person is not None:
-                pe.PersonService.updateByPrimaryKey(person)
-                
-            if enrollInfo is None:
-                EnrollInfo(enrollId=enrollInfo.enrollId, backupnum=enrollInfo.backupnum, imagePath=enrollInfo.imagePath, signatures=enrollInfo.signatures)
-                
-            elif enrollInfo is not None:
-                enrollInfo.signatures = signatures
-                en.EnrollInfoService.updateByPrimaryKeyWithBLOBs(enrollInfo)
+        if enrollInfo is None:
+            enrollInfo = EnrollInfoModel()
+            enrollInfo.enrollId = enrollInfo.enrollId
+            enrollInfo.backupnum = enrollInfo.backupnum
+            enrollInfo.imagePath = enrollInfo.imagePath
+            enrollInfo.signatures = enrollInfo.signatures
+            en.EnrollInfoService.insertSelective([enrollInfo])
+            
+        elif enrollInfo is not None:
+            enrollInfo.signatures = signatures
+            en.EnrollInfoService.updateByPrimaryKeyWithBLOBs(enrollInfo)
             
 def getAllLog(cli, server, m):
     result = bool(m.get('result', False))
-    # recordAll: list[Records] = []
+    recordAll: list[RecordsModel] = []
     sn = m.get('sn')
     records = m.get('record', [])
     deviceStatus = DeviceStatus()
@@ -259,22 +287,28 @@ def getAllLog(cli, server, m):
     if result == True:
         count = int(m.get('count', 0))
         if count > 0:
-            with db_session:
-                for o in records:
-                    enrollid = int(o.get('enrollid', 0))
-                    time = o.get('time')
-                    mode = int(o.get('mode', 0))
-                    inout = int(o.get('inout', 0))
-                    event = int(o.get('event', 0))
-                    temperature = 0
+            for o in records:
+                enrollid = int(o.get('enrollid', 0))
+                time = o.get('time')
+                mode = int(o.get('mode', 0))
+                inout = int(o.get('inout', 0))
+                event = int(o.get('event', 0))
+                temperature = 0
+                
+                if o.get('temp') is not None:
+                    temperature = float(o.get('temp', 0))
+                    temperature = temperature / 100.0
+                    temperature = round(temperature * 10) / 10.0
                     
-                    if o.get('temp') is not None:
-                        temperature = float(o.get('temp', 0))
-                        temperature = temperature / 100.0
-                        temperature = round(temperature * 10) / 10.0
-                        
-                    Records(enrollId=enrollid, event=event, intout=inout, mode=mode, recordsTime=time, deviceSerialNum=sn, temperature=temperature)
-                    # recordAll.append(record)
+                record = RecordsModel()
+                record.enrollId = enrollid
+                record.event = event
+                record.intout = inout
+                record.mode = mode
+                record.recordsTime = time
+                record.deviceSerialNum = sn
+                record.temperature = temperature
+                recordAll.append(record)
                 
             x = {
                 'cmd': 'getalllog',
@@ -287,13 +321,12 @@ def getAllLog(cli, server, m):
             deviceStatus.webSocket = server
             deviceStatus.client = cli
             WebSocketPool.addDeviceAndStatus(sn, deviceStatus)
-            
-    # for recordsTemp in recordAll:
-    #     RecordsService.insert(recordsTemp)
+          
+    RecordsService.insert(recordAll)  
         
 def getnewLog(cli, server, m):
     result = bool(m.get('result', False))
-    # recordAll: list[Records] = []
+    recordAll: list[RecordsModel] = []
     sn = m.get('sn')
     records = m.get('record', [])
     deviceStatus = DeviceStatus()
@@ -303,22 +336,28 @@ def getnewLog(cli, server, m):
     if result == True:
         count = int(m.get('count', 0))
         if count > 0:
-            with db_session:
-                for o in records:
-                    enrollid = int(o.get('enrollid', 0))
-                    time = o.get('time')
-                    mode = int(o.get('mode', 0))
-                    inout = int(o.get('inout', 0))
-                    event = int(o.get('event', 0))
-                    temperature = 0
+            for o in records:
+                enrollid = int(o.get('enrollid', 0))
+                time = o.get('time')
+                mode = int(o.get('mode', 0))
+                inout = int(o.get('inout', 0))
+                event = int(o.get('event', 0))
+                temperature = 0
+                
+                if o.get('temp') is not None:
+                    temperature = float(o.get('temp', 0))
+                    temperature = temperature / 100.0
+                    temperature = round(temperature * 10) / 10.0
                     
-                    if o.get('temp') is not None:
-                        temperature = float(o.get('temp', 0))
-                        temperature = temperature / 100.0
-                        temperature = round(temperature * 10) / 10.0
-                        
-                    Records(enrollId=enrollid, event=event, intout=inout, mode=mode, recordsTime=time, deviceSerialNum=sn, temperature=temperature)
-                    # recordAll.append(record)
+                record = RecordsModel()
+                record.enrollId = enrollid
+                record.event = event
+                record.intout = inout
+                record.mode = mode
+                record.recordsTime = time
+                record.deviceSerialNum = sn
+                record.temperature = temperature
+                recordAll.append(record)
                 
             x = {
                 'cmd': 'getnewlog',
@@ -331,9 +370,8 @@ def getnewLog(cli, server, m):
             deviceStatus.webSocket = server
             deviceStatus.client = cli
             WebSocketPool.addDeviceAndStatus(sn, deviceStatus)
-            
-    # for recordsTemp in recordAll:
-    #     RecordsService.insert(recordsTemp)
+          
+    RecordsService.insert(recordAll)
 
 def onMessageReceived(cli, server, msg):
     print(msg)

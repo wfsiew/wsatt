@@ -1,5 +1,5 @@
 from pony.orm import Database, db_session
-from app.entities import Records
+from app.entities import Records, RecordsModel
 
 class RecordsService:
     
@@ -8,23 +8,24 @@ class RecordsService:
         with db_session:
             Records[id].delete()
         
-    # @classmethod
-    # def insert(cls, record: Records):
-    #     with db_session:
-    #         Records(
-    #             enrollId=record.enrollId, 
-    #             recordsTime=record.recordsTime, 
-    #             mode=record.mode, 
-    #             intout=record.intout, 
-    #             event=record.event,
-    #             deviceSerialNum=record.deviceSerialNum,
-    #             temperature=record.temperature,
-    #             image=record.image
-    #         )
+    @classmethod
+    def insert(cls, records: list[RecordsModel]):
+        with db_session:
+            for record in records:
+                Records(
+                    enrollId=record.enrollId, 
+                    recordsTime=record.recordsTime, 
+                    mode=record.mode, 
+                    intout=record.intout, 
+                    event=record.event,
+                    deviceSerialNum=record.deviceSerialNum,
+                    temperature=record.temperature,
+                    image=record.image
+                )
 
-    # @classmethod
-    # def insertSelective(cls, record: Records):
-    #     cls.insert(record)
+    @classmethod
+    def insertSelective(cls, record: RecordsModel):
+        cls.insert([record])
         
     @classmethod
     def selectByPrimaryKey(cls, id: int):

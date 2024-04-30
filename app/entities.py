@@ -1,4 +1,5 @@
 from pony.orm import *
+from dataclasses import dataclass
 
 db = Database()
 db.bind(provider='sqlite', filename='../attdb.db', create_db=True)
@@ -88,3 +89,38 @@ class Records(db.Entity):
     image = Optional(str, max_len=255)
     
 db.generate_mapping(create_tables=True)
+
+@dataclass
+class EnrollInfoModel:
+    id = int
+    enrollId = int
+    backupnum = int
+    imagePath = str
+    signatures = str
+    
+    def __init__(self):
+        pass
+    
+@dataclass
+class PersonModel:
+    id = int
+    name = str
+    rollId = int
+    
+    def __init__(self):
+        pass
+    
+@dataclass
+class RecordsModel:
+    id = int
+    enrollId = int
+    recordsTime = str
+    mode = int
+    intout = int
+    event = int
+    deviceSerialNum = str
+    temperature = float
+    image = str
+    
+    def __init__(self):
+        pass

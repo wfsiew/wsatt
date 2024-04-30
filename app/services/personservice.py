@@ -1,5 +1,5 @@
 from pony.orm import Database, db_session
-from app.entities import Person
+from app.entities import Person, PersonModel
 from app.websocketpool import WebSocketPool
 
 import app.services.enrollinfoservice as en
@@ -18,14 +18,15 @@ class PersonService:
             o.name = record.name
             o.rollId = record.rollId
             
-    # @classmethod
-    # def insertSelective(cls, person: Person):
-    #     cls.insert(person)
+    @classmethod
+    def insertSelective(cls, person: PersonModel):
+        cls.insert([person])
             
-    # @classmethod
-    # def insert(cls, person: Person):
-    #     with db_session:
-    #         Person(name=person.name, rollId=person.rollId)
+    @classmethod
+    def insert(cls, persons: list[PersonModel]):
+        with db_session:
+            for person in persons:
+                Person(name=person.name, rollId=person.rollId)
             
     @classmethod
     def deleteByPrimaryKey(cls, id: int):

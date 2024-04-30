@@ -1,5 +1,5 @@
 from pony.orm import Database, db_session
-from app.entities import EnrollInfo
+from app.entities import EnrollInfo, EnrollInfoModel
 from app.models import UserInfo
 
 import app.services.personservice as pe
@@ -11,10 +11,11 @@ class EnrollInfoService:
         with db_session:
             EnrollInfo[id].delete()
             
-    # @classmethod
-    # def insertSelective(cls, record: EnrollInfo):
-    #     with db_session:
-    #         EnrollInfo(enrollId=record.enrollId, backupnum=record.backupnum, imagePath=record.imagePath, signatures=record.signatures)
+    @classmethod
+    def insertSelective(cls, records: list[EnrollInfo]):
+        with db_session:
+            for record in records:
+                EnrollInfo(enrollId=record.enrollId, backupnum=record.backupnum, imagePath=record.imagePath, signatures=record.signatures)
             
     @classmethod
     def selectByPrimaryKey(cls, id: int):
