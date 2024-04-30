@@ -92,35 +92,35 @@ db.generate_mapping(create_tables=True)
 
 @dataclass
 class EnrollInfoModel:
-    id = int
-    enrollId = int
-    backupnum = int
-    imagePath = str
-    signatures = str
+    id: int
+    enrollId: int
+    backupnum: int
+    imagePath: str
+    signatures: str
     
     def __init__(self):
         pass
     
 @dataclass
 class PersonModel:
-    id = int
-    name = str
-    rollId = int
+    id: int
+    name: str
+    rollId: int
     
     def __init__(self):
         pass
     
 @dataclass
 class RecordsModel:
-    id = int
-    enrollId = int
-    recordsTime = str
-    mode = int
-    intout = int
-    event = int
-    deviceSerialNum = str
-    temperature = float
-    image = str
+    id: int
+    enrollId: int
+    recordsTime: str
+    mode: int
+    intout: int
+    event: int
+    deviceSerialNum: str
+    temperature: float
+    image: str
     
     def __init__(self):
         pass

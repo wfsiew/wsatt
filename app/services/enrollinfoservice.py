@@ -1,6 +1,6 @@
 from typing import List
-from pony.orm import Database, db_session
-from app.entities import EnrollInfo, EnrollInfoModel
+from pony.orm import db_session
+from app.entities import EnrollInfo
 from app.models import UserInfo
 
 import app.services.personservice as pe
@@ -70,15 +70,16 @@ class EnrollInfoService:
     @classmethod
     def selectAll(cls) -> List[EnrollInfo]:
         with db_session:
-            return EnrollInfo.select(o for o in EnrollInfo)[:]
+            return EnrollInfo.select()
         
     @classmethod
     def selectByEnrollId(cls, enrollId: int) -> List[EnrollInfo]:
         with db_session:
-            return EnrollInfo.select(lambda o: o.enrollId == enrollId)[:]
+            return EnrollInfo.select(lambda o: o.enrollId == enrollId)
         
     @classmethod
     def updateByEnrollIdAndBackupNum(cls, signatures: str, enrollId: int, backupnum: int):
         with db_session:
-            for o in EnrollInfo.select(lambda o: o.enrollId == enrollId and o.backupnum == backupnum):
+            lq = EnrollInfo.select(lambda o: o.enrollId == enrollId and o.backupnum == backupnum)
+            for o in lq:
                 o.signatures = signatures

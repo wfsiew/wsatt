@@ -1,5 +1,5 @@
 from typing import List
-from pony.orm import Database, db_session
+from pony.orm import db_session
 from app.entities import Records, RecordsModel
 
 class RecordsService:
@@ -53,4 +53,4 @@ class RecordsService:
     @classmethod
     def selectAllRecords(cls) -> List[Records]:
         with db_session:
-            return Records.select(o for o in Records)[:]
+            return Records.select()

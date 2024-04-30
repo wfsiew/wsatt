@@ -1,5 +1,5 @@
 from typing import List
-from pony.orm import Database, db_session
+from pony.orm import db_session
 from app.entities import Person, PersonModel
 from app.websocketpool import WebSocketPool
 
@@ -42,7 +42,7 @@ class PersonService:
     @classmethod
     def selectAll(cls) -> List[Person]:
         with db_session:
-            return Person.select(o for o in Person)[:]
+            return Person.select()
         
     @classmethod
     def setUserToDevice(cls, enrollId: int, name: str, backupnum: int, admin: int, records: str, deviceSn: str):
