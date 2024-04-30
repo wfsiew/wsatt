@@ -1,6 +1,6 @@
 from websocket_server import WebsocketServer
 from datetime import datetime
-import logging, json, traceback
+from typing import List
 
 from app.models import DeviceStatus, UserTemp
 from app.entities import *
@@ -9,6 +9,7 @@ from app.services.recordsservice import RecordsService
 from app.websocketpool import WebSocketPool
 from app import utils
 
+import logging, json, traceback
 import app.services.personservice as pe
 import app.services.enrollinfoservice as en
 
@@ -54,7 +55,7 @@ def getAttandence(cli, server, m):
     count = int(m.get('count', 0))
     logindex = int(m.get('logindex', -1))
     records = m.get('record', [])
-    recordAll: list[RecordsModel] = []
+    recordAll: List[RecordsModel] = []
     deviceStatus = DeviceStatus()
     
     if count > 0:
@@ -183,14 +184,14 @@ def getEnrollInfo(cli, server, m):
         WebSocketPool.addDeviceAndStatus(sn, deviceStatus)
         
 def getUserList(cli, server, m):
-    userTemps: list[UserTemp] = []
+    userTemps: List[UserTemp] = []
     result = bool(m.get('result', False))
     records = m.get('record', [])
     sn = m.get('sn')
     deviceStatus = DeviceStatus()
     count = 0
-    lp: list[PersonModel] = []
-    le: list[EnrollInfoModel] = []
+    lp: List[PersonModel] = []
+    le: List[EnrollInfoModel] = []
     
     if result == True:
         count = int(m.get('count', 0))
@@ -276,7 +277,7 @@ def getUserInfo(cli, server, m):
             
 def getAllLog(cli, server, m):
     result = bool(m.get('result', False))
-    recordAll: list[RecordsModel] = []
+    recordAll: List[RecordsModel] = []
     sn = m.get('sn')
     records = m.get('record', [])
     deviceStatus = DeviceStatus()
@@ -325,7 +326,7 @@ def getAllLog(cli, server, m):
         
 def getnewLog(cli, server, m):
     result = bool(m.get('result', False))
-    recordAll: list[RecordsModel] = []
+    recordAll: List[RecordsModel] = []
     sn = m.get('sn')
     records = m.get('record', [])
     deviceStatus = DeviceStatus()

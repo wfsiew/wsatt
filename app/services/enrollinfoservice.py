@@ -1,3 +1,4 @@
+from typing import List
 from pony.orm import Database, db_session
 from app.entities import EnrollInfo, EnrollInfoModel
 from app.models import UserInfo
@@ -12,7 +13,7 @@ class EnrollInfoService:
             EnrollInfo[id].delete()
             
     @classmethod
-    def insertSelective(cls, records: list[EnrollInfo]):
+    def insertSelective(cls, records: List[EnrollInfo]):
         with db_session:
             for record in records:
                 EnrollInfo(enrollId=record.enrollId, backupnum=record.backupnum, imagePath=record.imagePath, signatures=record.signatures)
@@ -50,7 +51,7 @@ class EnrollInfoService:
     def usersToSendDevice(cls):
         persons = pe.PersonService.selectAll()
         enrollInfos = cls.selectAll()
-        userInfos: list[UserInfo] = []
+        userInfos: List[UserInfo] = []
         
         for p in persons:
             for e in enrollInfos:
@@ -67,12 +68,12 @@ class EnrollInfoService:
         return userInfos
         
     @classmethod
-    def selectAll(cls) -> list[EnrollInfo]:
+    def selectAll(cls) -> List[EnrollInfo]:
         with db_session:
             return EnrollInfo.select(o for o in EnrollInfo)[:]
         
     @classmethod
-    def selectByEnrollId(cls, enrollId: int) -> list[EnrollInfo]:
+    def selectByEnrollId(cls, enrollId: int) -> List[EnrollInfo]:
         with db_session:
             return EnrollInfo.select(lambda o: o.enrollId == enrollId)[:]
         

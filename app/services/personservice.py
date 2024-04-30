@@ -1,3 +1,4 @@
+from typing import List
 from pony.orm import Database, db_session
 from app.entities import Person, PersonModel
 from app.websocketpool import WebSocketPool
@@ -23,7 +24,7 @@ class PersonService:
         cls.insert([person])
             
     @classmethod
-    def insert(cls, persons: list[PersonModel]):
+    def insert(cls, persons: List[PersonModel]):
         with db_session:
             for person in persons:
                 Person(name=person.name, rollId=person.rollId)
@@ -39,7 +40,7 @@ class PersonService:
             return Person.get(id=id)
         
     @classmethod
-    def selectAll(cls) -> list[Person]:
+    def selectAll(cls) -> List[Person]:
         with db_session:
             return Person.select(o for o in Person)[:]
         

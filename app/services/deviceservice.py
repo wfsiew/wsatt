@@ -1,10 +1,11 @@
+from typing import List
 from pony.orm import Database, db_session
 from app.entities import Device
 
 class DeviceService:
     
     @classmethod
-    def findAllDevice(cls) -> list[Device]:
+    def findAllDevice(cls) -> List[Device]:
         with db_session:
             return Device.select(o for o in Device)[:]
     

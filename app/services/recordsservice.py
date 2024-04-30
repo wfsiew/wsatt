@@ -1,3 +1,4 @@
+from typing import List
 from pony.orm import Database, db_session
 from app.entities import Records, RecordsModel
 
@@ -9,7 +10,7 @@ class RecordsService:
             Records[id].delete()
         
     @classmethod
-    def insert(cls, records: list[RecordsModel]):
+    def insert(cls, records: List[RecordsModel]):
         with db_session:
             for record in records:
                 Records(
@@ -50,6 +51,6 @@ class RecordsService:
             o.image = record.image
 
     @classmethod
-    def selectAllRecords(cls) -> list[Records]:
+    def selectAllRecords(cls) -> List[Records]:
         with db_session:
             return Records.select(o for o in Records)[:]
