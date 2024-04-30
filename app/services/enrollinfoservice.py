@@ -35,10 +35,10 @@ class EnrollInfoService:
     def updateByPrimaryKeyWithBLOBs(cls, record: EnrollInfo):
         cls.updateByPrimaryKeySelective(record)
             
-    # @classmethod
-    # def insert(cls, enrollid: int, backupnum: int, imagePath: str, signature: str):
-    #     with db_session:
-    #         EnrollInfo(enrollId=enrollid, backupnum=backupnum, imagePath=imagePath, signatures=signature)
+    @classmethod
+    def insert(cls, enrollid: int, backupnum: int, imagePath: str, signature: str):
+        with db_session:
+            EnrollInfo(enrollId=enrollid, backupnum=backupnum, imagePath=imagePath, signatures=signature)
             
     @classmethod
     def selectByBackupnum(cls, enrollId: int, backupnum: int) -> EnrollInfo:

@@ -265,10 +265,9 @@ def getUserInfo(cli, server, m):
             
         if enrollInfo is None:
             enrollInfo = EnrollInfoModel()
-            enrollInfo.enrollId = enrollInfo.enrollId
-            enrollInfo.backupnum = enrollInfo.backupnum
-            enrollInfo.imagePath = enrollInfo.imagePath
-            enrollInfo.signatures = enrollInfo.signatures
+            enrollInfo.enrollId = enrollid
+            enrollInfo.backupnum = backupnum
+            enrollInfo.signatures = signatures
             en.EnrollInfoService.insertSelective([enrollInfo])
             
         elif enrollInfo is not None:
