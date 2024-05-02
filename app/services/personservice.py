@@ -101,3 +101,32 @@ class PersonService:
                 deviceStatus1.status = 0
                 WebSocketPool.addDeviceAndStatus(deviceSn, deviceStatus1)
                 WebSocketPool.sendMessageToDeviceStatus(deviceSn, ms)
+                
+    @classmethod
+    def setUsernameToDevice(cls, deviceSn: str):
+        with db_session:
+            persons = cls.selectAll()
+            
+            m = {
+                'cmd': 'setusername',
+                'count': len(persons)
+            }
+            records = []
+            for o in persons:
+                s = {
+                    'enrollid': o.id,
+                    'name': o.name,
+                }
+                records.append(s)
+                
+            m['record'] = records
+            ms = json.dumps(m)
+            i = 0
+            while i < 1:
+                deviceStatus = WebSocketPool.getDeviceStatus(deviceSn)
+                if deviceStatus.status == 1:
+                    deviceStatus.status = 0
+                    WebSocketPool.addDeviceAndStatus(deviceSn, deviceStatus)
+                    if deviceStatus.webSocket is not None:
+                        WebSocketPool.sendMessageToDeviceStatus(deviceSn, ms)
+                        i = i + 1

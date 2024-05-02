@@ -224,11 +224,15 @@ def getUserList(cli, server, m):
             person.id = uTemp.enrollId
             person.name = ''
             person.rollId = uTemp.admin
+            lp.append(person)
 
         if en.EnrollInfoService.selectByBackupnum(uTemp.enrollId, uTemp.backupnum) is None:
             enrollInfo = EnrollInfoModel()
+            enrollInfo.id = 0
             enrollInfo.enrollId = uTemp.enrollId
             enrollInfo.backupnum = uTemp.backupnum
+            enrollInfo.imagePath = ''
+            enrollInfo.signatures = ''
             le.append(enrollInfo)
             
     pe.PersonService.insert(lp)
@@ -301,6 +305,7 @@ def getAllLog(cli, server, m):
                     temperature = round(temperature * 10) / 10.0
                     
                 record = RecordsModel()
+                record.id = 0
                 record.enrollId = enrollid
                 record.event = event
                 record.intout = inout
@@ -308,6 +313,7 @@ def getAllLog(cli, server, m):
                 record.recordsTime = time
                 record.deviceSerialNum = sn
                 record.temperature = temperature
+                record.image = ''
                 recordAll.append(record)
                 
             x = {
@@ -432,16 +438,28 @@ def onMessageReceived(cli, server, msg):
         WebSocketPool.sendMessageToDeviceStatus(sn, ms)
         
     elif m.get('cmd') == 'getuserinfo':
-        sn = m.get('deviceSn')
-        del m['deviceSn']
         ms = json.dumps(m)
-        WebSocketPool.sendMessageToDeviceStatus(sn, ms)
+        WebSocketPool.sendMessageToAllDeviceFree(ms)
         
     elif m.get('cmd') == 'getuserlist':
         sn = m.get('deviceSn')
         del m['deviceSn']
         ms = json.dumps(m)
-        WebSocketPool.sendMessageToDeviceStatus(sn, ms) 
+        WebSocketPool.sendMessageToDeviceStatus(sn, ms)
+        
+    elif m.get('cmd') == 'setpersontodevice':
+        sn = m.get('deviceSn')
+        pe.PersonService.setUserToDevice2(sn)
+        
+    elif m.get('cmd') == 'setusernametodevice':
+        sn = m.get('deviceSn')
+        pe.PersonService.setUsernameToDevice(sn)
+        
+    elif m.get('cmd') == 'getdevinfo':
+        sn = m.get('deviceSn')
+        del m['deviceSn']
+        ms = json.dumps(m)
+        WebSocketPool.sendMessageToDeviceStatus(sn, ms)
         
     elif m.get('ret') == 'getuserlist':
         getUserList(cli, server, m)
@@ -450,7 +468,14 @@ def onMessageReceived(cli, server, msg):
         getUserInfo(cli, server, m)
     
     elif m.get('ret') == 'setuserinfo':
-        pass
+        result = bool(m.get('result', False))
+        sn = m.get('sn')
+        deviceStatus = DeviceStatus()
+        deviceStatus.deviceSn = sn
+        deviceStatus.status = 1
+        deviceStatus.webSocket = server
+        deviceStatus.client = cli
+        WebSocketPool.addDeviceAndStatus(sn, deviceStatus)
         
     elif m.get('ret') == 'getalllog':
         try:
@@ -465,6 +490,24 @@ def onMessageReceived(cli, server, msg):
             
         except Exception as e:
             logger.error(traceback.format_exc())
+            
+    elif m.get('ret') == 'getdevinfo':
+        sn = m.get('sn')
+        deviceStatus = DeviceStatus()
+        deviceStatus.deviceSn = sn
+        deviceStatus.status = 1
+        deviceStatus.webSocket = server
+        deviceStatus.client = cli
+        WebSocketPool.addDeviceAndStatus(sn, deviceStatus)
+        
+    elif m.get('ret') == 'setusername':
+        sn = m.get('sn')
+        deviceStatus = DeviceStatus()
+        deviceStatus.deviceSn = sn
+        deviceStatus.status = 1
+        deviceStatus.webSocket = server
+        deviceStatus.client = cli
+        WebSocketPool.addDeviceAndStatus(sn, deviceStatus)
     
 def onNewClient(cli, server):
     pass

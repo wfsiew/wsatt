@@ -89,6 +89,7 @@ class Records(db.Entity):
     image = Optional(str, max_len=255)
     
 db.generate_mapping(create_tables=True)
+sql_debug(True)
 
 @dataclass
 class EnrollInfoModel:
