@@ -80,6 +80,6 @@ class EnrollInfoService:
     @classmethod
     def updateByEnrollIdAndBackupNum(cls, signatures: str, enrollId: int, backupnum: int):
         with db_session:
-            lq = EnrollInfo.select(lambda o: o.enrollId == enrollId and o.backupnum == backupnum)
-            for o in lq:
+            q = EnrollInfo.select(lambda o: o.enrollId == enrollId and o.backupnum == backupnum)
+            for o in q:
                 o.signatures = signatures
