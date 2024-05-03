@@ -53,4 +53,4 @@ class RecordsService:
     @classmethod
     def selectAllRecords(cls) -> List[Records]:
         with db_session:
-            return Records.select()
+            return Records.select()[:]

@@ -42,7 +42,7 @@ class PersonService:
     @classmethod
     def selectAll(cls) -> List[Person]:
         with db_session:
-            return Person.select()
+            return Person.select()[:]
         
     @classmethod
     def setUserToDevice(cls, enrollId: int, name: str, backupnum: int, admin: int, records: str, deviceSn: str):
