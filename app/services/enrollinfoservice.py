@@ -44,8 +44,7 @@ class EnrollInfoService:
     @classmethod
     def selectByBackupnum(cls, enrollId: int, backupnum: int) -> EnrollInfo:
         with db_session:
-            o = EnrollInfo.get(enrollId=enrollId, backupnum=backupnum)
-            return o
+            return EnrollInfo.get(enrollId=enrollId, backupnum=backupnum)
         
     @classmethod
     def usersToSendDevice(cls):
