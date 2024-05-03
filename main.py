@@ -150,7 +150,7 @@ def getEnrollInfo(cli, server, m):
         
     else:
         backupnum = int(m.get('backupnum', 0))
-        enrollId = int(m.get('enrollId', 0))
+        enrollId = int(m.get('enrollid', 0))
         name = m.get('name')
         rollId = int(m.get('admin', 0))
         signatures = m.get('record')
