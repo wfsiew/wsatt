@@ -48,24 +48,23 @@ class EnrollInfoService:
         
     @classmethod
     def usersToSendDevice(cls):
-        with db_session:
-            persons = pe.PersonService.selectAll()
-            enrollInfos = cls.selectAll()
-            userInfos: List[UserInfo] = []
-            
-            for p in persons:
-                for e in enrollInfos:
-                    if p.id == e.enrollId:
-                        userInfo = UserInfo()
-                        userInfo.admin = p.rollId
-                        userInfo.backupnum = e.backupnum
-                        userInfo.enrollId = p.id
-                        userInfo.name = p.name
-                        userInfo.record = e.signatures
-                        
-                        userInfos.append(userInfo)
-                        
-            return userInfos
+        persons = pe.PersonService.selectAll()
+        enrollInfos = cls.selectAll()
+        userInfos: List[UserInfo] = []
+        
+        for p in persons:
+            for e in enrollInfos:
+                if p.id == e.enrollId:
+                    userInfo = UserInfo()
+                    userInfo.admin = p.rollId
+                    userInfo.backupnum = e.backupnum
+                    userInfo.enrollId = p.id
+                    userInfo.name = p.name
+                    userInfo.record = e.signatures
+                    
+                    userInfos.append(userInfo)
+                    
+        return userInfos
         
     @classmethod
     def selectAll(cls) -> List[EnrollInfo]:
