@@ -103,6 +103,25 @@ class PersonService:
                 WebSocketPool.sendMessageToDeviceStatus(deviceSn, ms)
                 
     @classmethod
+    def deleteUserInfoFromDevice(cls, enrollId: int, deviceSn: str):
+        i = 0
+        time.sleep(0.01)
+        backupnum = 13
+        m = {
+            'cmd': 'deleteuser',
+            'enrollid': enrollId,
+            'backupnum': backupnum
+        }
+        ms = json.dumps(m)
+        deviceStatus = WebSocketPool.getDeviceStatus(deviceSn)
+        if deviceStatus.status == 1:
+            deviceStatus.status = 0
+            WebSocketPool.addDeviceAndStatus(deviceSn, deviceStatus)
+            if deviceStatus.webSocket is not None:
+                WebSocketPool.sendMessageToDeviceStatus(deviceSn, ms)
+                i = i + 1
+                
+    @classmethod
     def setUsernameToDevice(cls, deviceSn: str):
         with db_session:
             persons = cls.selectAll()

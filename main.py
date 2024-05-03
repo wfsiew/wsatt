@@ -73,6 +73,7 @@ def getAttandence(cli, server, m):
                 temperature = round(temperature * 10) / 10.0
                 
             record = RecordsModel()
+            record.id = 0
             record.deviceSerialNum = sn
             record.enrollId = enrollid
             record.event = event
@@ -80,6 +81,7 @@ def getAttandence(cli, server, m):
             record.mode = mode
             record.recordsTime = time
             record.temperature = temperature
+            record.image = ''
             
             if o.get('image') is not None:
                 record.image = o.get('image')
@@ -165,8 +167,10 @@ def getEnrollInfo(cli, server, m):
         
         if en.EnrollInfoService.selectByBackupnum(enrollId, backupnum) is None:
             enrollInfo = EnrollInfoModel()
+            enrollInfo.id = 0
             enrollInfo.enrollId = enrollId
             enrollInfo.backupnum = backupnum
+            enrollInfo.imagePath = ''
             enrollInfo.signatures = signatures
             en.EnrollInfoService.insertSelective([enrollInfo])
         
@@ -270,8 +274,10 @@ def getUserInfo(cli, server, m):
             
         if enrollInfo is None:
             enrollInfo = EnrollInfoModel()
+            enrollInfo.id = 0
             enrollInfo.enrollId = enrollid
             enrollInfo.backupnum = backupnum
+            enrollInfo.imagePath = ''
             enrollInfo.signatures = signatures
             en.EnrollInfoService.insertSelective([enrollInfo])
             
@@ -356,6 +362,7 @@ def getnewLog(cli, server, m):
                     temperature = round(temperature * 10) / 10.0
                     
                 record = RecordsModel()
+                record.id = 0
                 record.enrollId = enrollid
                 record.event = event
                 record.intout = inout
@@ -363,6 +370,7 @@ def getnewLog(cli, server, m):
                 record.recordsTime = time
                 record.deviceSerialNum = sn
                 record.temperature = temperature
+                record.image = ''
                 recordAll.append(record)
                 
             x = {
@@ -460,6 +468,26 @@ def onMessageReceived(cli, server, msg):
         del m['deviceSn']
         ms = json.dumps(m)
         WebSocketPool.sendMessageToDeviceStatus(sn, ms)
+        
+    elif m.get('cmd') == 'opendoor':
+        sn = m.get('deviceSn')
+        del m['deviceSn']
+        ms = json.dumps(m)
+        WebSocketPool.sendMessageToDeviceStatus(sn, ms)
+        
+    elif m.get('cmd') == 'deleteuser':
+        sn = m.get('deviceSn')
+        enrollid = m.get('enrollid')
+        pe.PersonService.deleteUserInfoFromDevice(enrollid, sn)
+        
+    elif m.get('cmd') == 'setoneuser':
+        sn = m.get('deviceSn')
+        enrollid = m.get('enrollid')
+        backupnum = m.get('backupnum')
+        person = pe.PersonService.selectByPrimaryKey(enrollid)
+        enrollInfo = en.EnrollInfoService.selectByBackupnum(enrollid, backupnum)
+        if enrollInfo is not None:
+            pe.PersonService.setUserToDevice(enrollid, person.name, backupnum, person.rollId, enrollInfo.signatures, sn)
         
     elif m.get('ret') == 'getuserlist':
         getUserList(cli, server, m)
