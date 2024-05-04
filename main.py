@@ -1,4 +1,5 @@
 from websocket_server import WebsocketServer
+from tortoise import Tortoise, run_async
 from datetime import datetime
 from typing import List
 
@@ -9,23 +10,23 @@ from app.services.recordsservice import RecordsService
 from app.websocketpool import WebSocketPool
 from app import utils
 
-import logging, json, traceback
+import logging, json, traceback, asyncio
 import app.services.personservice as pe
 import app.services.enrollinfoservice as en
 
 logger = utils.getLogger('main')
 
-def getDeviceInfo(cli, server, m):
+async def getDeviceInfo(cli, server, m):
     sn = m.get('sn')
     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
     if sn is not None:
-        d1 = DeviceService.selectDeviceBySerialNum(sn)
+        d1 = await DeviceService.selectDeviceBySerialNum(sn)
         if d1 is None:
-            DeviceService.insert(sn, 1)
+            await DeviceService.insert(sn, 1)
             
         else:
-            DeviceService.updateStatusByPrimaryKey(d1.id, 1)
+            await DeviceService.updateStatusByPrimaryKey(d1.id, 1)
             
         x = {
             'ret': 'reg',
@@ -50,7 +51,7 @@ def getDeviceInfo(cli, server, m):
         ms = json.dumps(x)
         WebSocketPool.sendMessageToDevice(cli, server, ms)
         
-def getAttandence(cli, server, m):
+async def getAttandence(cli, server, m):
     sn = m.get('sn')
     count = int(m.get('count', 0))
     logindex = int(m.get('logindex', -1))
@@ -129,9 +130,9 @@ def getAttandence(cli, server, m):
         deviceStatus.client = cli
         WebSocketPool.addDeviceAndStatus(sn, deviceStatus)
         
-    RecordsService.insert(recordAll)
+    await RecordsService.insert(recordAll)
         
-def getEnrollInfo(cli, server, m):
+async def getEnrollInfo(cli, server, m):
     sn = m.get('sn')
     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     sn = m.get('sn')
@@ -155,24 +156,24 @@ def getEnrollInfo(cli, server, m):
         rollId = int(m.get('admin', 0))
         signatures = m.get('record')
         
-        if pe.PersonService.selectByPrimaryKey(enrollId) is None:
+        if await pe.PersonService.selectByPrimaryKey(enrollId) is None:
             person = PersonModel()
             person.id = enrollId
             person.name = name
             person.rollId = rollId
-            pe.PersonService.insert([person])
+            await pe.PersonService.insert([person])
         
         if backupnum == 50:
             pass
         
-        if en.EnrollInfoService.selectByBackupnum(enrollId, backupnum) is None:
+        if await en.EnrollInfoService.selectByBackupnum(enrollId, backupnum) is None:
             enrollInfo = EnrollInfoModel()
             enrollInfo.id = 0
             enrollInfo.enrollId = enrollId
             enrollInfo.backupnum = backupnum
             enrollInfo.imagePath = ''
             enrollInfo.signatures = signatures
-            en.EnrollInfoService.insertSelective([enrollInfo])
+            await en.EnrollInfoService.insertSelective([enrollInfo])
         
         x = {
             'ret': 'senduser',
@@ -187,7 +188,7 @@ def getEnrollInfo(cli, server, m):
         deviceStatus.client = cli
         WebSocketPool.addDeviceAndStatus(sn, deviceStatus)
         
-def getUserList(cli, server, m):
+async def getUserList(cli, server, m):
     userTemps: List[UserTemp] = []
     result = bool(m.get('result', False))
     records = m.get('record', [])
@@ -223,14 +224,14 @@ def getUserList(cli, server, m):
             WebSocketPool.addDeviceAndStatus(sn, deviceStatus)
             
     for uTemp in userTemps:
-        if pe.PersonService.selectByPrimaryKey(uTemp.enrollId) is None:
+        if await pe.PersonService.selectByPrimaryKey(uTemp.enrollId) is None:
             person = PersonModel()
             person.id = uTemp.enrollId
             person.name = ''
             person.rollId = uTemp.admin
             lp.append(person)
 
-        if en.EnrollInfoService.selectByBackupnum(uTemp.enrollId, uTemp.backupnum) is None:
+        if await en.EnrollInfoService.selectByBackupnum(uTemp.enrollId, uTemp.backupnum) is None:
             enrollInfo = EnrollInfoModel()
             enrollInfo.id = 0
             enrollInfo.enrollId = uTemp.enrollId
@@ -239,10 +240,10 @@ def getUserList(cli, server, m):
             enrollInfo.signatures = ''
             le.append(enrollInfo)
             
-    pe.PersonService.insert(lp)
-    en.EnrollInfoService.insertSelective(le)
+    await pe.PersonService.insert(lp)
+    await en.EnrollInfoService.insertSelective(le)
             
-def getUserInfo(cli, server, m):
+async def getUserInfo(cli, server, m):
     now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     result = bool(m.get('result', False))
     sn = m.get('sn')
@@ -256,8 +257,8 @@ def getUserInfo(cli, server, m):
         admin = int(m.get('admin', 0))
         signatures = m.get('record')
         
-        person = pe.PersonService.selectByPrimaryKey(enrollid)
-        enrollInfo = en.EnrollInfoService.selectByBackupnum(enrollid, backupnum)
+        person = await pe.PersonService.selectByPrimaryKey(enrollid)
+        enrollInfo = await en.EnrollInfoService.selectByBackupnum(enrollid, backupnum)
         
         if backupnum == 50:
             pass
@@ -267,10 +268,10 @@ def getUserInfo(cli, server, m):
             person.id = enrollid
             person.name = name
             person.rollId = admin
-            pe.PersonService.insert([person])
+            await pe.PersonService.insert([person])
             
         elif person is not None:
-            pe.PersonService.updateByPrimaryKey(person)
+            await pe.PersonService.updateByPrimaryKey(person)
             
         if enrollInfo is None:
             enrollInfo = EnrollInfoModel()
@@ -279,13 +280,13 @@ def getUserInfo(cli, server, m):
             enrollInfo.backupnum = backupnum
             enrollInfo.imagePath = ''
             enrollInfo.signatures = signatures
-            en.EnrollInfoService.insertSelective([enrollInfo])
+            await en.EnrollInfoService.insertSelective([enrollInfo])
             
         elif enrollInfo is not None:
             enrollInfo.signatures = signatures
             en.EnrollInfoService.updateByPrimaryKeyWithBLOBs(enrollInfo)
             
-def getAllLog(cli, server, m):
+async def getAllLog(cli, server, m):
     result = bool(m.get('result', False))
     recordAll: List[RecordsModel] = []
     sn = m.get('sn')
@@ -334,9 +335,9 @@ def getAllLog(cli, server, m):
             deviceStatus.client = cli
             WebSocketPool.addDeviceAndStatus(sn, deviceStatus)
           
-    RecordsService.insert(recordAll)  
+    await RecordsService.insert(recordAll)  
         
-def getnewLog(cli, server, m):
+async def getnewLog(cli, server, m):
     result = bool(m.get('result', False))
     recordAll: List[RecordsModel] = []
     sn = m.get('sn')
@@ -385,15 +386,18 @@ def getnewLog(cli, server, m):
             deviceStatus.client = cli
             WebSocketPool.addDeviceAndStatus(sn, deviceStatus)
           
-    RecordsService.insert(recordAll)
+    await RecordsService.insert(recordAll)
+    
+def onMessageReceivedFn(cli, server, msg):
+    asyncio.run(onMessageReceived(cli, server, msg))
 
-def onMessageReceived(cli, server, msg):
+async def onMessageReceived(cli, server, msg):
     print(msg)
     print('=====')
     m = json.loads(msg)
     if m.get('cmd') == 'reg':
         try:
-            getDeviceInfo(cli, server, m)
+            await getDeviceInfo(cli, server, m)
             
         except Exception as e:
             x = {
@@ -407,7 +411,7 @@ def onMessageReceived(cli, server, msg):
         
     elif m.get('cmd') == 'sendlog':
         try:
-            getAttandence(cli, server, m)
+            await getAttandence(cli, server, m)
         
         except Exception as e:
             x = {
@@ -421,7 +425,7 @@ def onMessageReceived(cli, server, msg):
             
     elif m.get('cmd') == 'senduser':
         try:
-            getEnrollInfo(cli, server, m)
+            await getEnrollInfo(cli, server, m)
         
         except Exception as e:
             x = {
@@ -490,10 +494,10 @@ def onMessageReceived(cli, server, msg):
             pe.PersonService.setUserToDevice(enrollid, person.name, backupnum, person.rollId, enrollInfo.signatures, sn)
         
     elif m.get('ret') == 'getuserlist':
-        getUserList(cli, server, m)
+        await getUserList(cli, server, m)
         
     elif m.get('ret') == 'getuserinfo':
-        getUserInfo(cli, server, m)
+        await getUserInfo(cli, server, m)
     
     elif m.get('ret') == 'setuserinfo':
         result = bool(m.get('result', False))
@@ -507,14 +511,14 @@ def onMessageReceived(cli, server, msg):
         
     elif m.get('ret') == 'getalllog':
         try:
-            getAllLog(cli, server, m)
+            await getAllLog(cli, server, m)
             
         except Exception as e:
             logger.error(traceback.format_exc())
     
     elif m.get('ret') == 'getnewlog':
         try:
-            getnewLog(cli, server, m)
+            await getnewLog(cli, server, m)
             
         except Exception as e:
             logger.error(traceback.format_exc())
@@ -540,7 +544,14 @@ def onMessageReceived(cli, server, msg):
 def onNewClient(cli, server):
     pass
 
-server = WebsocketServer(host='192.168.5.164', port=7788, loglevel=logging.INFO)
-server.set_fn_message_received(onMessageReceived)
-server.set_fn_new_client(onNewClient)
-server.run_forever()
+async def init():
+    await Tortoise.init(db_url="psycopg://postgres:postgres@localhost:5432/attdb", modules={"models": ["app.entities"]})
+    await Tortoise.generate_schemas()
+    
+if __name__ == '__main__':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    run_async(init())
+    server = WebsocketServer(host='192.168.5.164', port=7788, loglevel=logging.INFO)
+    server.set_fn_message_received(onMessageReceivedFn)
+    server.set_fn_new_client(onNewClient)
+    server.run_forever()

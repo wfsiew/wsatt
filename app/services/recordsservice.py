@@ -1,56 +1,53 @@
 from typing import List
-from pony.orm import db_session
+from tortoise import connections
+from tortoise.transactions import in_transaction
 from app.entities import Records, RecordsModel
 
 class RecordsService:
     
     @classmethod
-    def deleteByPrimaryKey(cls, id: int):
-        with db_session:
-            Records[id].delete()
+    async def deleteByPrimaryKey(cls, id: int):
+        await Records.filter(id=id).delete()
         
     @classmethod
-    def insert(cls, records: List[RecordsModel]):
-        with db_session:
-            for record in records:
-                Records(
-                    enrollId=record.enrollId, 
-                    recordsTime=record.recordsTime, 
-                    mode=record.mode, 
-                    intout=record.intout, 
-                    event=record.event,
-                    deviceSerialNum=record.deviceSerialNum,
-                    temperature=record.temperature,
-                    image=record.image
-                )
+    async def insert(cls, records: List[RecordsModel]):
+        for record in records:
+            await Records.create(
+                enrollId=record.enrollId, 
+                recordsTime=record.recordsTime, 
+                mode=record.mode, 
+                intout=record.intout, 
+                event=record.event,
+                deviceSerialNum=record.deviceSerialNum,
+                temperature=record.temperature,
+                image=record.image
+            )
 
     @classmethod
-    def insertSelective(cls, record: RecordsModel):
-        cls.insert([record])
+    async def insertSelective(cls, record: RecordsModel):
+        await cls.insert([record])
         
     @classmethod
-    def selectByPrimaryKey(cls, id: int):
-        with db_session:
-            return Records.get(id=id)
+    async def selectByPrimaryKey(cls, id: int):
+        return await Records.get_or_none(id=id)
     
     @classmethod
-    def updateByPrimaryKeySelective(cls, record: Records):
-        cls.updateByPrimaryKey(record)
+    async def updateByPrimaryKeySelective(cls, record: Records):
+        await cls.updateByPrimaryKey(record)
         
     @classmethod
-    def updateByPrimaryKey(cls, record: Records):
-        with db_session:
-            o = Records[record.id]
-            o.enrollId = record.enrollId
-            o.recordsTime = record.recordsTime
-            o.mode = record.mode
-            o.intout = record.intout
-            o.event = record.event
-            o.deviceSerialNum = record.deviceSerialNum
-            o.temperature = record.temperature
-            o.image = record.image
+    async def updateByPrimaryKey(cls, record: Records):
+        await Records.filter(id=record.id).update(
+            enrollId=record.enrollId,
+            recordsTime=record.recordsTime,
+            mode=record.mode,
+            intout=record.intout,
+            event=record.event,
+            deviceSerialNum=record.deviceSerialNum,
+            temperature=record.temperature,
+            image=record.image
+        )
 
     @classmethod
-    def selectAllRecords(cls) -> List[Records]:
-        with db_session:
-            return Records.select()[:]
+    async def selectAllRecords(cls):
+        return await Records.all()

@@ -1,5 +1,6 @@
 from typing import List
-from pony.orm import db_session
+from tortoise import connections
+from tortoise.transactions import in_transaction
 from app.entities import Person, PersonModel
 from app.websocketpool import WebSocketPool
 
@@ -9,40 +10,37 @@ import time, json
 class PersonService:
     
     @classmethod
-    def updateByPrimaryKeySelective(cls, record: Person):
-        cls.updateByPrimaryKey(record)
+    async def updateByPrimaryKeySelective(cls, record: Person):
+        await cls.updateByPrimaryKey(record)
             
     @classmethod
-    def updateByPrimaryKey(cls, record: Person):
-        with db_session:
-            o = Person[record.id]
-            o.name = record.name
-            o.rollId = record.rollId
+    async def updateByPrimaryKey(cls, record: Person):
+        await Person.filter(id=record.id).update(name=record.name, rollId=record.rollId)
             
     @classmethod
-    def insertSelective(cls, person: PersonModel):
-        cls.insert([person])
+    async def insertSelective(cls, person: PersonModel):
+        await cls.insert([person])
             
     @classmethod
-    def insert(cls, persons: List[PersonModel]):
-        with db_session:
-            for person in persons:
-                Person(name=person.name, rollId=person.rollId)
+    async def insert(cls, persons: List[PersonModel]):
+        for person in persons:
+            await Person.create(name=person.name, rollId=person.rollId)
             
     @classmethod
-    def deleteByPrimaryKey(cls, id: int):
-        with db_session:
-            Person[id].delete()
+    async def deleteByPrimaryKey(cls, id: int):
+        await Person.filter(id=id).delete()
             
     @classmethod
-    def selectByPrimaryKey(cls, id: int):
-        with db_session:
-            return Person.get(id=id)
+    async def selectByPrimaryKey(cls, id: int):
+        return await Person.get_or_none(id=id)
         
     @classmethod
-    def selectAll(cls) -> List[Person]:
-        with db_session:
-            return Person.select()[:]
+    async def selectAll(cls):
+        return await Person.all()
+    
+    @classmethod
+    async def selectAllId(cls):
+        return await Person.all().values_list('id', flat=True)
         
     @classmethod
     def setUserToDevice(cls, enrollId: int, name: str, backupnum: int, admin: int, records: str, deviceSn: str):
@@ -73,8 +71,8 @@ class PersonService:
             WebSocketPool.sendMessageToDeviceStatus(deviceSn, ms)
             
     @classmethod
-    def setUserToDevice2(cls, deviceSn: str):
-        userInfos = en.EnrollInfoService.usersToSendDevice()
+    async def setUserToDevice2(cls, deviceSn: str):
+        userInfos = await en.EnrollInfoService.usersToSendDevice()
         
         for o in userInfos:
             enrollId = o.enrollId
@@ -122,30 +120,29 @@ class PersonService:
                 i = i + 1
                 
     @classmethod
-    def setUsernameToDevice(cls, deviceSn: str):
-        with db_session:
-            persons = cls.selectAll()
-            
-            m = {
-                'cmd': 'setusername',
-                'count': len(persons)
+    async def setUsernameToDevice(cls, deviceSn: str):
+        persons = await cls.selectAll()
+        
+        m = {
+            'cmd': 'setusername',
+            'count': len(persons)
+        }
+        records = []
+        for o in persons:
+            s = {
+                'enrollid': o.id,
+                'name': o.name,
             }
-            records = []
-            for o in persons:
-                s = {
-                    'enrollid': o.id,
-                    'name': o.name,
-                }
-                records.append(s)
-                
-            m['record'] = records
-            ms = json.dumps(m)
-            i = 0
-            while i < 1:
-                deviceStatus = WebSocketPool.getDeviceStatus(deviceSn)
-                if deviceStatus.status == 1:
-                    deviceStatus.status = 0
-                    WebSocketPool.addDeviceAndStatus(deviceSn, deviceStatus)
-                    if deviceStatus.webSocket is not None:
-                        WebSocketPool.sendMessageToDeviceStatus(deviceSn, ms)
-                        i = i + 1
+            records.append(s)
+            
+        m['record'] = records
+        ms = json.dumps(m)
+        i = 0
+        while i < 1:
+            deviceStatus = WebSocketPool.getDeviceStatus(deviceSn)
+            if deviceStatus.status == 1:
+                deviceStatus.status = 0
+                WebSocketPool.addDeviceAndStatus(deviceSn, deviceStatus)
+                if deviceStatus.webSocket is not None:
+                    WebSocketPool.sendMessageToDeviceStatus(deviceSn, ms)
+                    i = i + 1

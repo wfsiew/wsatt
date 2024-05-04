@@ -7,6 +7,8 @@ pip install "python-jose[cryptography]"
 pip install "passlib[bcrypt]"
 pip install gunicorn databases[postgresql]
 pip install pony
+pip install tortoise-orm
+pip install tortoise-orm[psycopg]
 pip install websocket-server
 
 

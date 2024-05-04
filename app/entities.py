@@ -1,26 +1,26 @@
-from pony.orm import *
+from tortoise.models import Model
+from tortoise import fields
 from dataclasses import dataclass
 
-db = Database()
-db.bind(provider='sqlite', filename='../attdb.db', create_db=True)
-
-class AccessDay(db.Entity):
-    _table_ = 'access_day'
-    id = PrimaryKey(int, auto=True)
-    serial = Optional(str, max_len=12)
-    name = Optional(str, max_len=20)
-    startTime1 = Required(str, max_len=20, column='start_time1')
-    endTime1 = Required(str, max_len=20, column='end_time1')
-    startTime2 = Required(str, max_len=20, column='start_time2')
-    endTime2 = Required(str, max_len=20, column='end_time2')
-    startTime3 = Required(str, max_len=20, column='start_time3')
-    endTime3 = Required(str, max_len=20, column='end_time3')
-    startTime4 = Required(str, max_len=20, column='start_time4')
-    endTime4 = Required(str, max_len=20, column='end_time4')
-    startTime5 = Required(str, max_len=20, column='start_time5')
-    endTime5 = Required(str, max_len=20, column='end_time5')
+class AccessDay(Model):
+    id = fields.IntField(pk=True)
+    serial = fields.CharField(max_length=12, null=True)
+    name = fields.CharField(max_length=20, null=True)
+    startTime1 = fields.CharField(max_length=20, source_field='start_time1')
+    endTime1 = fields.CharField(max_length=20, source_field='end_time1')
+    startTime2 = fields.CharField(max_length=20, source_field='start_time2')
+    endTime2 = fields.CharField(max_length=20, source_field='end_time2')
+    startTime3 = fields.CharField(max_length=20, source_field='start_time3')
+    endTime3 = fields.CharField(max_length=20, source_field='end_time3')
+    startTime4 = fields.CharField(max_length=20, source_field='start_time4')
+    endTime4 = fields.CharField(max_length=20, source_field='end_time4')
+    startTime5 = fields.CharField(max_length=20, source_field='start_time5')
+    endTime5 = fields.CharField(max_length=20, source_field='end_time5')
     
-    def __str__(self):
+    class Meta:
+        table = 'access_day'
+    
+    def __repr__(self):
         return f'''AccessDay [id={self.id}, serial={self.serial}, name={self.name} 
         , startTime1={self.startTime1}, endTime1={self.endTime1}
         , startTime2={self.startTime2}, endTime1={self.endTime2}
@@ -28,68 +28,75 @@ class AccessDay(db.Entity):
         , startTime4={self.startTime1}, endTime4={self.endTime4}
         , startTime5={self.startTime5}, endTime1={self.endTime5}]'''
         
-class AccessWeek(db.Entity):
-    _table_ = 'access_week'
-    id = PrimaryKey(int, auto=True)
-    serial = Optional(str, max_len=20)
-    name = Optional(str, max_len=20)
-    sunday = Required(int)
-    monday = Required(int)
-    tuesday = Required(int)
-    wednesday = Required(int)
-    thursday = Required(int)
-    friday = Required(int)
-    saturday = Required(int)
+class AccessWeek(Model):
+    id = fields.IntField(pk=True)
+    serial = fields.CharField(max_length=20, null=True)
+    name = fields.CharField(max_length=20, null=True)
+    sunday = fields.IntField()
+    monday = fields.IntField()
+    tuesday = fields.IntField()
+    wednesday = fields.IntField()
+    thursday = fields.IntField()
+    friday = fields.IntField()
+    saturday = fields.IntField()
     
-    def __str__(self):
+    class Meta:
+        table = 'access_week'
+    
+    def __repr__(self):
         return f'''AccessWeek [id={self.id}, serial={self.serial}, name={self.name}
         , monday={self.monday}, tuesday={self.tuesday}
         , wednesday={self.wednesday}, thursday={self.thursday}
         , friday={self.friday}, saturday={self.saturday}, sunday={self.sunday}]'''
 
-class Device(db.Entity):
-    _table_ = 'device'
-    id = PrimaryKey(int, auto=True)
-    serialNum = Required(str, max_len=50, column='serial_num')
-    status = Required(int)
+class Device(Model):
+    id = fields.IntField(pk=True)
+    serialNum = fields.CharField(max_length=50, source_field='serial_num')
+    status = fields.IntField()
     
-    def __str__(self):
+    class Meta:
+        table = 'device'
+    
+    def __repr__(self):
         return f'Device [id={self.id}, serialNum={self.serialNum}, status={self.status}]'
     
-class EnrollInfo(db.Entity):
-    _table_ = 'enrollinfo'
-    id = PrimaryKey(int, auto=True)
-    enrollId = Required(int, column='enroll_id')
-    backupnum = Optional(int)
-    imagePath = Optional(str, max_len=255, column='imagepath')
-    signatures = Optional(str)
+class EnrollInfo(Model):
+    id = fields.IntField(pk=True)
+    enrollId = fields.IntField(source_field='enroll_id')
+    backupnum = fields.IntField(null=True)
+    imagePath = fields.CharField(max_length=255, source_field='imagepath', null=True)
+    signatures = fields.TextField(null=True)
     
-    def __str__(self):
+    class Meta:
+        table = 'enrollinfo'
+    
+    def __repr__(self):
         return f'EnrollInfo [id={self.id}, enrollId={self.enrollId}, backupnum={self.backupnum}, imagePath={self.imagePath}, signatures={self.signatures}]'
     
-class Person(db.Entity):
-    _table_ = 'person'
-    id = PrimaryKey(int, auto=True)
-    name = Optional(str, max_len=50)
-    rollId = Optional(int, column='roll_id')
+class Person(Model):
+    id = fields.IntField(pk=True)
+    name = fields.CharField(max_length=50, null=True)
+    rollId = fields.IntField(source_field='roll_id', null=True)
     
-    def __str__(self):
+    class Meta:
+        table = 'person'
+    
+    def __repr__(self):
         return f'Person [id={self.id}, name={self.name}, rollId={self.rollId}]'
     
-class Records(db.Entity):
-    _table_ = 'records'
-    id = PrimaryKey(int, auto=True)
-    enrollId = Required(int, column='enroll_id')
-    recordsTime = Required(str, column='records_time')
-    mode = Required(int)
-    intout = Required(int, column='intOut')
-    event = Required(int)
-    deviceSerialNum = Optional(str, max_len=50, column='device_serial_num')
-    temperature = Optional(float)
-    image = Optional(str, max_len=255)
+class Records(Model):
+    id = fields.IntField(pk=True)
+    enrollId = fields.IntField(source_field='enroll_id')
+    recordsTime = fields.DatetimeField(source_field='records_time')
+    mode = fields.IntField()
+    intout = fields.IntField(source_field='intOut')
+    event = fields.IntField()
+    deviceSerialNum = fields.CharField(max_length=50, source_field='device_serial_num', null=True)
+    temperature = fields.FloatField(null=True)
+    image = fields.CharField(max_length=255, null=True)
     
-db.generate_mapping(create_tables=True)
-sql_debug(True)
+    class Meta:
+        table = 'records'
 
 @dataclass
 class EnrollInfoModel:

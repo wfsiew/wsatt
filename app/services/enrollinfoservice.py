@@ -1,6 +1,7 @@
 from typing import List
-from pony.orm import db_session
-from app.entities import EnrollInfo
+from tortoise import connections
+from tortoise.transactions import in_transaction
+from app.entities import EnrollInfo, EnrollInfoModel
 from app.models import UserInfo
 
 import app.services.personservice as pe
@@ -8,77 +9,71 @@ import app.services.personservice as pe
 class EnrollInfoService:
     
     @classmethod
-    def deleteByPrimaryKey(cls, id: int):
-        with db_session:
-            EnrollInfo[id].delete()
+    async def deleteByPrimaryKey(cls, id: int):
+        await EnrollInfo.filter(id=id).delete()
             
     @classmethod
-    def insertSelective(cls, records: List[EnrollInfo]):
-        with db_session:
-            for record in records:
-                EnrollInfo(enrollId=record.enrollId, backupnum=record.backupnum, imagePath=record.imagePath, signatures=record.signatures)
+    async def insertSelective(cls, records: List[EnrollInfoModel]):
+        for record in records:
+            await EnrollInfo.create(enrollId=record.enrollId, backupnum=record.backupnum, imagePath=record.imagePath, signatures=record.signatures)
             
     @classmethod
-    def selectByPrimaryKey(cls, id: int):
-        with db_session:
-            return EnrollInfo.get(id=id)
+    async def selectByPrimaryKey(cls, id: int):
+        return await EnrollInfo.get_or_none(id=id)
         
     @classmethod
-    def updateByPrimaryKeySelective(cls, record: EnrollInfo):
-        with db_session:
-            o = EnrollInfo[record.id]
-            o.enrollId = record.enrollId
-            o.backupnum = record.backupnum
-            o.imagePath = record.imagePath
-            o.signatures = record.signatures
+    async def updateByPrimaryKeySelective(cls, record: EnrollInfo):
+        await EnrollInfo.filter(id=record.id).update(
+            enrollId=record.enrollId,
+            backupnum=record.backupnum,
+            imagePath=record.imagePath,
+            signatures=record.signatures
+        )
             
     @classmethod
-    def updateByPrimaryKeyWithBLOBs(cls, record: EnrollInfo):
-        cls.updateByPrimaryKeySelective(record)
+    async def updateByPrimaryKeyWithBLOBs(cls, record: EnrollInfo):
+        await cls.updateByPrimaryKeySelective(record)
             
     @classmethod
-    def insert(cls, enrollid: int, backupnum: int, imagePath: str, signature: str):
-        with db_session:
-            EnrollInfo(enrollId=enrollid, backupnum=backupnum, imagePath=imagePath, signatures=signature)
+    async def insert(cls, enrollid: int, backupnum: int, imagePath: str, signature: str):
+        await EnrollInfo.create(enrollId=enrollid, backupnum=backupnum, imagePath=imagePath, signatures=signature)
             
     @classmethod
-    def selectByBackupnum(cls, enrollId: int, backupnum: int) -> EnrollInfo:
-        with db_session:
-            return EnrollInfo.get(enrollId=enrollId, backupnum=backupnum)
+    async def selectByBackupnum(cls, enrollId: int, backupnum: int):
+        return await EnrollInfo.get_or_none(enrollId=enrollId, backupnum=backupnum)
         
     @classmethod
-    def usersToSendDevice(cls):
-        persons = pe.PersonService.selectAll()
-        enrollInfos = cls.selectAll()
+    async def usersToSendDevice(cls):
+        persons = await pe.PersonService.selectAll()
+        lenrollid = [o.id for o in persons]
+        enrollInfos = await cls.selectAllByEnrollId(lenrollid)
         userInfos: List[UserInfo] = []
         
         for p in persons:
             for e in enrollInfos:
-                if p.id == e.enrollId:
-                    userInfo = UserInfo()
-                    userInfo.admin = p.rollId
-                    userInfo.backupnum = e.backupnum
-                    userInfo.enrollId = p.id
-                    userInfo.name = p.name
-                    userInfo.record = e.signatures
-                    
-                    userInfos.append(userInfo)
+                userInfo = UserInfo()
+                userInfo.admin = p.rollId
+                userInfo.backupnum = e.backupnum
+                userInfo.enrollId = p.id
+                userInfo.name = p.name
+                userInfo.record = e.signatures
+                
+                userInfos.append(userInfo)
                     
         return userInfos
+    
+    @classmethod
+    async def selectAllByEnrollId(cls, lenrollid: List[int]):
+        return await EnrollInfo.filter(enrollId__in=lenrollid)
         
     @classmethod
-    def selectAll(cls) -> List[EnrollInfo]:
-        with db_session:
-            return EnrollInfo.select()[:]
+    async def selectAll(cls):
+        return await EnrollInfo.all()
         
     @classmethod
-    def selectByEnrollId(cls, enrollId: int) -> List[EnrollInfo]:
-        with db_session:
-            return EnrollInfo.select(lambda o: o.enrollId == enrollId)[:]
+    async def selectByEnrollId(cls, enrollId: int):
+        return await EnrollInfo.filter(enrollId=enrollId)
         
     @classmethod
-    def updateByEnrollIdAndBackupNum(cls, signatures: str, enrollId: int, backupnum: int):
-        with db_session:
-            q = EnrollInfo.select(lambda o: o.enrollId == enrollId and o.backupnum == backupnum)[:]
-            for o in q:
-                o.signatures = signatures
+    async def updateByEnrollIdAndBackupNum(cls, signatures: str, enrollId: int, backupnum: int):
+        await EnrollInfo.filter(enrollId=enrollId, backupnum=backupnum).update(signatures=signatures)
