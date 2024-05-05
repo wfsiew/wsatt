@@ -492,6 +492,12 @@ async def onMessageReceived(cli, server, msg):
         enrollInfo = en.EnrollInfoService.selectByBackupnum(enrollid, backupnum)
         if enrollInfo is not None:
             pe.PersonService.setUserToDevice(enrollid, person.name, backupnum, person.rollId, enrollInfo.signatures, sn)
+            
+    elif m.get('cmd') in ['cleanlog', 'cleanuser']:
+        sn = m.get('deviceSn')
+        del m['deviceSn']
+        ms = json.dumps(m)
+        WebSocketPool.sendMessageToDeviceStatus(sn, ms)
         
     elif m.get('ret') == 'getuserlist':
         await getUserList(cli, server, m)

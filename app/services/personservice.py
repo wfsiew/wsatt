@@ -24,7 +24,7 @@ class PersonService:
     @classmethod
     async def insert(cls, persons: List[PersonModel]):
         for person in persons:
-            await Person.create(name=person.name, rollId=person.rollId)
+            await Person.create(id=person.id, name=person.name, rollId=person.rollId)
             
     @classmethod
     async def deleteByPrimaryKey(cls, id: int):
