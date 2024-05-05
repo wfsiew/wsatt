@@ -12,7 +12,7 @@ class RecordsService:
     @classmethod
     async def clear(cls):
         await Records.all().delete()
-        conn = connections.get("default")
+        conn = connections.get('default')
         await conn.execute_script('ALTER SEQUENCE records_id_seq RESTART WITH 1;')
         
     @classmethod
