@@ -335,6 +335,9 @@ async def getAllLog(cli, server, m):
             deviceStatus.client = cli
             WebSocketPool.addDeviceAndStatus(sn, deviceStatus)
           
+    if len(recordAll) > 0:
+        await RecordsService.clear()
+        
     await RecordsService.insert(recordAll)  
         
 async def getnewLog(cli, server, m):

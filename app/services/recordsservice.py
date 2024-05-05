@@ -10,9 +10,15 @@ class RecordsService:
         await Records.filter(id=id).delete()
         
     @classmethod
+    async def clear(cls):
+        await Records.all().delete()
+        conn = connections.get("default")
+        await conn.execute_script('ALTER SEQUENCE records_id_seq RESTART WITH 1;')
+        
+    @classmethod
     async def insert(cls, records: List[RecordsModel]):
         for record in records:
-            await Records.create(
+            await Records.update_or_create(
                 enrollId=record.enrollId, 
                 recordsTime=record.recordsTime, 
                 mode=record.mode, 
